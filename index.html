@@ -48,8 +48,15 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
 
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
+window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // --- ADDED LOGOUT HANDLER ---
+    if (urlParams.get('logout') === 'true') {
+        localStorage.clear(); // Wipe all user data
+        window.history.replaceState({}, '', window.location.pathname + '?page=Login');
+    }
+
             let requestedPage = urlParams.get('page') || 'Login';
 
             const studentIdParam = urlParams.get('studentid');
