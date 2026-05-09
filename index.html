@@ -1,9 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArcherStudio Connect</title>
+
+    <!-- 1. Favicon (The Logo in the Browser Tab) -->
+    <link rel="icon" type="image/png" href="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true">
+
+    <!-- 2. Standard SEO Tags -->
+    <meta name="description" content="Access the ArcherStudio Connect portal to manage your student profile, view business solutions, and collaborate with our creative team.">
+    <meta name="keywords" content="ArcherStudio, Connect, Student Portal, Business Solutions, Taytay Rizal">
+    <meta name="author" content="ArcherStudio">
+
+    <!-- 3. Open Graph / Facebook (What shows on Facebook/Discord/WhatsApp) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://astramarky.github.io/Connect/">
+    <meta property="og:title" content="ArcherStudio Connect | Vision to Reality">
+    <meta property="og:description" content="Your all-in-one portal for collaboration, business development, and creative solutions. Sign in to access your dashboard.">
+    <meta property="og:image" content="https://github.com/AstraMarky/Connect/blob/main/Screenshot%202026-05-10%20011821.png?raw=true">
+
+    <!-- 4. Twitter (What shows on X/Twitter) -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://astramarky.github.io/Connect/">
+    <meta property="twitter:title" content="ArcherStudio Connect">
+    <meta property="twitter:description" content="Build something great together. Sign in to the ArcherStudio Connect portal.">
+    <meta property="twitter:image" content="https://github.com/AstraMarky/Connect/blob/main/Screenshot%202026-05-10%20011821.png?raw=true">
+
     <style>
         body, html {
             margin: 0;
@@ -25,18 +46,15 @@
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
     <script>
-        // --- 1. CONFIGURATION ---
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             let requestedPage = urlParams.get('page') || 'Login';
 
-            // --- 2. CAPTURE & SAVE DATA (If redirected from Login) ---
             const studentIdParam = urlParams.get('studentid');
             
             if (studentIdParam) {
-                // Save all passed data to the browser's LocalStorage
                 localStorage.setItem('studentId', studentIdParam);
                 localStorage.setItem('email', urlParams.get('email') || '');
                 localStorage.setItem('surname', urlParams.get('surname') || '');
@@ -50,17 +68,14 @@
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // --- 3. AUTHENTICATION CHECK ---
             const savedStudentId = localStorage.getItem('studentId');
             const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
 
-            // --- 4. ROUTING LOGIC ---
             if (!isLoggedIn) {
                 if (requestedPage !== 'Register') {
                     requestedPage = 'Login';
                 }
             } else {
-                // ALREADY LOGGED IN: Prevent them from accidentally going to the Login/Register pages
                 if (requestedPage === 'Login' || requestedPage === 'Register') {
                     requestedPage = 'Dashboard';
                     const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
@@ -68,22 +83,16 @@
                 }
             }
 
-// --- 5. LOAD THE IFRAME ---
-            // Tell the Google Apps Script which page to serve and who the user is
             const iframe = document.getElementById('app-frame');
             
-            // Build the final iframe URL
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
             
             if (isLoggedIn) {
-                // Retrieve the rest of the data from LocalStorage
                 const savedEmail = localStorage.getItem('email') || '';
                 const savedFirstName = localStorage.getItem('firstName') || '';
                 const savedMiddleName = localStorage.getItem('middleName') || '';
                 const savedSurname = localStorage.getItem('surname') || '';
 
-                // Pass everything to the GAS backend so it can build the Dashboard
-                // Using encodeURIComponent prevents spaces/special characters from breaking the URL
                 finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
                 finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
                 finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
