@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcherStudio Connect</title>
+    <style>
+        /* Reset margins to make the iframe completely fill the screen */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* Prevents double scrollbars */
+            background-color: #FFFFFF;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- This iframe will load your Google Apps Script -->
+    <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        // ⚠️ PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE:
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbznxgeeJ4WnxtTE6Sz_ATP4RNi2FvUqhDOGM9KBaX0485tLCLirfHhA-LWqASZa2aM/exec";
+
+        window.onload = function() {
+            // Read the current URL parameters (e.g., ?page=Dashboard&studentid=...)
+            const urlParams = new URLSearchParams(window.location.search);
+            let requestedPage = urlParams.get('page') || 'Login';
+
+            // --- 2. CAPTURE & SAVE DATA (If redirected from Login) ---
+            const studentIdParam = urlParams.get('studentid');
+            
+            if (studentIdParam) {
+                // Save all passed data to the browser's LocalStorage
+                localStorage.setItem('studentId', studentIdParam);
+                localStorage.setItem('email', urlParams.get('email') || '');
+                localStorage.setItem('surname', urlParams.get('surname') || '');
+                localStorage.setItem('firstName', urlParams.get('firstName') || '');
+                localStorage.setItem('middleName', urlParams.get('middleName') || '');
+                localStorage.setItem('yearSection', urlParams.get('yearSection') || '');
+                
+                // Set the page to Dashboard since they just successfully logged in
+                requestedPage = 'Dashboard';
+
+                // CLEAN THE URL: Erase the sensitive data from the address bar
+                // This changes the URL to just "?page=Dashboard" without refreshing the page
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+
+            // --- 3. AUTHENTICATION CHECK ---
+            // Look into LocalStorage to see if the user is logged in
+            const savedStudentId = localStorage.getItem('studentId');
+            const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+
+            // --- 4. ROUTING LOGIC ---
+            if (!isLoggedIn) {
+                // NOT LOGGED IN: Force them to Login (unless they explicitly want to Register)
+                if (requestedPage !== 'Register') {
+                    requestedPage = 'Login';
+                }
+            } else {
+                // ALREADY LOGGED IN: Prevent them from accidentally going to the Login/Register pages
+                if (requestedPage === 'Login' || requestedPage === 'Register') {
+                    requestedPage = 'Dashboard';
+                    // Force the URL to look right if they typed ?page=Login
+                    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+                    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+                }
+            }
+
+            // --- 5. LOAD THE IFRAME ---
+            // Tell the Google Apps Script which page to serve and who the user is
+            const iframe = document.getElementById('app-frame');
+            
+            // Build the final iframe URL
+            let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+            if (isLoggedIn) {
+                // Pass the student ID to the GAS backend so it can load their specific dashboard data
+                finalIframeUrl += "&studentid=" + savedStudentId; 
+            }
+            
+            iframe.src = finalIframeUrl;
+        };
+    </script>
+</body>
+</html>
