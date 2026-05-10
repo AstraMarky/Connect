@@ -121,7 +121,7 @@
                 const savedYearSection = localStorage.getItem('yearSection') || '';
                 const savedGroupId = localStorage.getItem('groupId') || '';
                 const savedGroupNum = localStorage.getItem('groupNumber') || '';
-                const savedGroupNum = localStorage.getItem('groupName') || '';
+                const savedGroupName = localStorage.getItem('groupName') || '';
 
                 if (savedStudentId) finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
                 if (savedEmail) finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
@@ -131,7 +131,7 @@
                 if (savedYearSection) finalIframeUrl += "&yearSection=" + encodeURIComponent(savedYearSection);
                 if (savedGroupId) finalIframeUrl += "&groupid=" + encodeURIComponent(savedGroupId);
                 if (savedGroupNum) finalIframeUrl += "&groupnumber=" + encodeURIComponent(savedGroupNum);
-                if (savedGroupNum) finalIframeUrl += "&groupname=" + encodeURIComponent(savedGroupNum);
+                if (savedGroupNum) finalIframeUrl += "&groupname=" + encodeURIComponent(savedGroupName);
             }
             
             iframe.src = finalIframeUrl;
