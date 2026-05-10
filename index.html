@@ -51,7 +51,7 @@
             
             // --- LOGOUT HANDLER ---
             if (urlParams.get('logout') === 'true') {
-                localStorage.clear(); // Wipe all user data
+                localStorage.clear(); 
                 window.history.replaceState({}, '', window.location.pathname + '?page=Login');
             }
 
@@ -67,7 +67,7 @@
                 localStorage.setItem('middleName', urlParams.get('middleName') || '');
                 localStorage.setItem('yearSection', urlParams.get('yearSection') || '');
                 
-                // THE FIX: Grab the group data from the URL instead of 'result'
+                // --- THE FIX: GRAB GROUP DATA FROM URL ---
                 const newGroupId = urlParams.get('groupid');
                 const newGroupNum = urlParams.get('groupnumber');
                 if (newGroupId) localStorage.setItem('groupId', newGroupId);
@@ -83,12 +83,10 @@
             const groupIdParam = urlParams.get('groupid');
             const groupNumParam = urlParams.get('groupnumber');
             
-            if (groupIdParam && groupNumParam) {
-                // Save the newly switched group to local storage safely
+            if (groupIdParam && groupNumParam && !studentIdParam) { // Added !studentIdParam to prevent overriding the login set
                 localStorage.setItem('groupId', groupIdParam);
                 localStorage.setItem('groupNumber', groupNumParam);
 
-                // Clean the URL so the parameters don't stay in the address bar
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
@@ -114,7 +112,6 @@
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
             
             if (isLoggedIn) {
-                // Fetch saved data
                 const savedEmail = localStorage.getItem('email') || '';
                 const savedFirstName = localStorage.getItem('firstName') || '';
                 const savedMiddleName = localStorage.getItem('middleName') || '';
@@ -123,7 +120,6 @@
                 const savedGroupId = localStorage.getItem('groupId') || '';
                 const savedGroupNum = localStorage.getItem('groupNumber') || '';
 
-                // Safety Net: Only append parameters if they actually contain data
                 if (savedStudentId) finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
                 if (savedEmail) finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
                 if (savedFirstName) finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
