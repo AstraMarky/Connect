@@ -45,22 +45,22 @@
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
-    <script>
+   <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
 
-window.onload = function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // --- ADDED LOGOUT HANDLER ---
-    if (urlParams.get('logout') === 'true') {
-        localStorage.clear(); // Wipe all user data
-        window.history.replaceState({}, '', window.location.pathname + '?page=Login');
-    }
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // --- LOGOUT HANDLER ---
+            if (urlParams.get('logout') === 'true') {
+                localStorage.clear(); // Wipe all user data
+                window.history.replaceState({}, '', window.location.pathname + '?page=Login');
+            }
 
             let requestedPage = urlParams.get('page') || 'Login';
 
+            // --- 1. HANDLE NEW LOGIN / USER DATA ---
             const studentIdParam = urlParams.get('studentid');
-            
             if (studentIdParam) {
                 localStorage.setItem('studentId', studentIdParam);
                 localStorage.setItem('email', urlParams.get('email') || '');
@@ -75,6 +75,21 @@ window.onload = function() {
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
+            // --- 2. HANDLE GROUP SWITCHING ---
+            const groupIdParam = urlParams.get('groupid');
+            const groupNumParam = urlParams.get('groupnumber');
+            
+            if (groupIdParam && groupNumParam) {
+                // Save the newly switched group to local storage
+                localStorage.setItem('groupId', groupIdParam);
+                localStorage.setItem('groupNumber', groupNumParam);
+
+                // Clean the URL so the parameters don't stay in the address bar
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+
+            // --- 3. AUTHENTICATION CHECK ---
             const savedStudentId = localStorage.getItem('studentId');
             const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
 
@@ -90,8 +105,8 @@ window.onload = function() {
                 }
             }
 
+            // --- 4. BUILD IFRAME URL ---
             const iframe = document.getElementById('app-frame');
-            
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
             
             if (isLoggedIn) {
@@ -99,12 +114,20 @@ window.onload = function() {
                 const savedFirstName = localStorage.getItem('firstName') || '';
                 const savedMiddleName = localStorage.getItem('middleName') || '';
                 const savedSurname = localStorage.getItem('surname') || '';
+                
+                // Fetch saved group details
+                const savedGroupId = localStorage.getItem('groupId') || '';
+                const savedGroupNum = localStorage.getItem('groupNumber') || '';
 
                 finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
                 finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
                 finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
                 finalIframeUrl += "&middleName=" + encodeURIComponent(savedMiddleName); 
                 finalIframeUrl += "&surname=" + encodeURIComponent(savedSurname); 
+                
+                // Pass active group details to GAS if they exist
+                if (savedGroupId) finalIframeUrl += "&groupid=" + encodeURIComponent(savedGroupId);
+                if (savedGroupNum) finalIframeUrl += "&groupnumber=" + encodeURIComponent(savedGroupNum);
             }
             
             iframe.src = finalIframeUrl;
