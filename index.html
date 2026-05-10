@@ -66,6 +66,9 @@
                 localStorage.setItem('firstName', urlParams.get('firstName') || '');
                 localStorage.setItem('middleName', urlParams.get('middleName') || '');
                 localStorage.setItem('yearSection', urlParams.get('yearSection') || '');
+                // Inside your login success handler in your frontend:
+localStorage.setItem('groupId', result.data.groupId);
+localStorage.setItem('groupNumber', result.data.groupName);
                 
                 requestedPage = 'Dashboard';
 
