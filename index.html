@@ -45,7 +45,7 @@
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
-   <script>
+<script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
 
         window.onload = function() {
@@ -114,6 +114,7 @@
                 const savedFirstName = localStorage.getItem('firstName') || '';
                 const savedMiddleName = localStorage.getItem('middleName') || '';
                 const savedSurname = localStorage.getItem('surname') || '';
+                const savedYearSection = localStorage.getItem('yearSection') || '';
                 
                 // Fetch saved group details
                 const savedGroupId = localStorage.getItem('groupId') || '';
@@ -124,6 +125,7 @@
                 finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
                 finalIframeUrl += "&middleName=" + encodeURIComponent(savedMiddleName); 
                 finalIframeUrl += "&surname=" + encodeURIComponent(savedSurname); 
+                finalIframeUrl += "&yearSection=" + encodeURIComponent(savedYearSection); // ADDED THIS LINE!
                 
                 // Pass active group details to GAS if they exist
                 if (savedGroupId) finalIframeUrl += "&groupid=" + encodeURIComponent(savedGroupId);
