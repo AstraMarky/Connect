@@ -1,24 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArcherStudio Connect</title>
 
-    <!-- 1. Favicon (The Logo in the Browser Tab) -->
     <link rel="icon" type="image/png" href="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true">
 
-    <!-- 2. Standard SEO Tags -->
     <meta name="description" content="Access the ArcherStudio Connect portal to manage your student profile, view business solutions, and collaborate with our creative team.">
     <meta name="keywords" content="ArcherStudio, Connect, Student Portal, Business Solutions, Taytay Rizal">
     <meta name="author" content="ArcherStudio">
 
-    <!-- 3. Open Graph / Facebook (What shows on Facebook/Discord/WhatsApp) -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://astramarky.github.io/Connect/">
     <meta property="og:title" content="ArcherStudio Connect | Vision to Reality">
     <meta property="og:description" content="Your all-in-one portal for collaboration, business development, and creative solutions. Sign in to access your dashboard.">
     <meta property="og:image" content="https://github.com/AstraMarky/Connect/blob/main/Screenshot%202026-05-10%20011821.png?raw=true">
 
-    <!-- 4. Twitter (What shows on X/Twitter) -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://astramarky.github.io/Connect/">
     <meta property="twitter:title" content="ArcherStudio Connect">
@@ -45,7 +43,7 @@
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
-<script>
+    <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
 
         window.onload = function() {
@@ -61,7 +59,7 @@
 
             // --- 1. HANDLE NEW LOGIN / USER DATA ---
             const studentIdParam = urlParams.get('studentid');
-            if (studentIdParam) {
+            if (studentIdParam && studentIdParam.trim() !== "") {
                 localStorage.setItem('studentId', studentIdParam);
                 localStorage.setItem('email', urlParams.get('email') || '');
                 localStorage.setItem('surname', urlParams.get('surname') || '');
@@ -80,7 +78,7 @@
             const groupNumParam = urlParams.get('groupnumber');
             
             if (groupIdParam && groupNumParam) {
-                // Save the newly switched group to local storage
+                // Save the newly switched group to local storage safely
                 localStorage.setItem('groupId', groupIdParam);
                 localStorage.setItem('groupNumber', groupNumParam);
 
@@ -105,11 +103,12 @@
                 }
             }
 
-            // --- 4. BUILD IFRAME URL ---
+            // --- 4. BUILD IFRAME URL SAFELY ---
             const iframe = document.getElementById('app-frame');
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
             
             if (isLoggedIn) {
+                // Fetch saved data
                 const savedEmail = localStorage.getItem('email') || '';
                 const savedFirstName = localStorage.getItem('firstName') || '';
                 const savedMiddleName = localStorage.getItem('middleName') || '';
@@ -118,14 +117,15 @@
                 const savedGroupId = localStorage.getItem('groupId') || '';
                 const savedGroupNum = localStorage.getItem('groupNumber') || '';
 
-                finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
-                finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
-                finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
-                finalIframeUrl += "&middleName=" + encodeURIComponent(savedMiddleName); 
-                finalIframeUrl += "&surname=" + encodeURIComponent(savedSurname); 
-                finalIframeUrl += "&yearSection=" + encodeURIComponent(savedYearSection);
-                finalIframeUrl += "&groupid=" + encodeURIComponent(savedGroupId);
-                finalIframeUrl += "&groupnumber=" + encodeURIComponent(savedGroupNum);
+                // Safety Net: Only append parameters if they actually contain data
+                if (savedStudentId) finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
+                if (savedEmail) finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
+                if (savedFirstName) finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
+                if (savedMiddleName) finalIframeUrl += "&middleName=" + encodeURIComponent(savedMiddleName); 
+                if (savedSurname) finalIframeUrl += "&surname=" + encodeURIComponent(savedSurname); 
+                if (savedYearSection) finalIframeUrl += "&yearSection=" + encodeURIComponent(savedYearSection);
+                if (savedGroupId) finalIframeUrl += "&groupid=" + encodeURIComponent(savedGroupId);
+                if (savedGroupNum) finalIframeUrl += "&groupnumber=" + encodeURIComponent(savedGroupNum);
             }
             
             iframe.src = finalIframeUrl;
