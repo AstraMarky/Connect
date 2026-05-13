@@ -75,7 +75,7 @@
     <!-- YOUR APP IFRAME -->
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
-    <script>
+   <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
         const iframe = document.getElementById('app-frame');
         const loader = document.getElementById('clean-loader');
@@ -90,6 +90,18 @@
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             
+            // --- NEW: Clear Group Data ---
+            if (urlParams.get('clear') === 'groups') {
+                localStorage.removeItem('groupId');
+                localStorage.removeItem('groupNumber');
+                localStorage.removeItem('groupname');
+                
+                // Clean the URL so the user just sees ?page=Collaboration
+                let reqPage = urlParams.get('page') || 'Collaboration';
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            }
+
             if (urlParams.get('logout') === 'true') {
                 localStorage.clear(); 
                 window.history.replaceState({}, '', window.location.pathname + '?page=Login');
@@ -110,12 +122,16 @@
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // Handle Group Switching
+            // --- UPDATED: Handle Group Switching (Includes groupname) ---
             const groupIdParam = urlParams.get('groupid');
             const groupNumParam = urlParams.get('groupnumber');
+            const groupNameParam = urlParams.get('groupname');
+            
             if (groupIdParam && groupNumParam && !studentIdParam) {
                 localStorage.setItem('groupId', groupIdParam);
                 localStorage.setItem('groupNumber', groupNumParam);
+                if (groupNameParam) localStorage.setItem('groupname', groupNameParam);
+                
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
