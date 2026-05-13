@@ -6,22 +6,7 @@
     <title>ArcherStudio Connect</title>
 
     <link rel="icon" type="image/png" href="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true">
-
     <meta name="description" content="Access the ArcherStudio Connect portal to manage your student profile, view business solutions, and collaborate with our creative team.">
-    <meta name="keywords" content="ArcherStudio, Connect, Student Portal, Business Solutions, Taytay Rizal">
-    <meta name="author" content="ArcherStudio">
-
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://astramarky.github.io/Connect/">
-    <meta property="og:title" content="ArcherStudio Connect | Vision to Reality">
-    <meta property="og:description" content="Your all-in-one portal for collaboration, business development, and creative solutions. Sign in to access your dashboard.">
-    <meta property="og:image" content="https://github.com/AstraMarky/Connect/blob/main/Screenshot%202026-05-10%20011821.png?raw=true">
-
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://astramarky.github.io/Connect/">
-    <meta property="twitter:title" content="ArcherStudio Connect">
-    <meta property="twitter:description" content="Build something great together. Sign in to the ArcherStudio Connect portal.">
-    <meta property="twitter:image" content="https://github.com/AstraMarky/Connect/blob/main/Screenshot%202026-05-10%20011821.png?raw=true">
 
     <style>
         body, html {
@@ -30,26 +15,81 @@
             height: 100%;
             overflow: hidden;
             background-color: #FFFFFF;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
+
+        /* --- THE MINIMALIST LOADER --- */
+        #clean-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #FFFFFF;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.4s ease-out, visibility 0.4s;
+        }
+
+        /* Gentle pulse on the logo, not a crazy spin */
+        .loader-logo {
+            width: 80px; 
+            margin-bottom: 20px;
+            animation: soft-pulse 1.5s infinite ease-in-out;
+        }
+
+        .loading-text {
+            font-size: 13px;
+            color: #666;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        @keyframes soft-pulse {
+            0%, 100% { opacity: 0.7; transform: scale(0.96); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- IFRAME STYLING --- */
         iframe {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
+            opacity: 0; 
+            transition: opacity 0.5s ease-in; 
         }
     </style>
 </head>
 <body>
 
+    <!-- CLEAN BRANDED LOADER -->
+    <div id="clean-loader">
+        <img src="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true" alt="ArcherStudio Logo" class="loader-logo">
+        <div class="loading-text">Loading Workspace</div>
+    </div>
+
+    <!-- YOUR APP IFRAME -->
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzwXokVdOOChIVd6NRkc_arYvO8BOCA30YEQoGnGc5jfFuwooz8NsdgQOLMgDkESKk/exec";
+        const iframe = document.getElementById('app-frame');
+        const loader = document.getElementById('clean-loader');
+
+        // Wait for Google to finish loading the iframe content
+        iframe.onload = function() {
+            loader.style.opacity = '0';
+            iframe.style.opacity = '1';
+            setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+        };
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // --- LOGOUT HANDLER ---
             if (urlParams.get('logout') === 'true') {
                 localStorage.clear(); 
                 window.history.replaceState({}, '', window.location.pathname + '?page=Login');
@@ -57,84 +97,60 @@
 
             let requestedPage = urlParams.get('page') || 'Login';
 
-            // --- 1. HANDLE NEW LOGIN / USER DATA ---
+            // Handle New Login Data
             const studentIdParam = urlParams.get('studentid');
             if (studentIdParam && studentIdParam.trim() !== "") {
-                localStorage.setItem('studentId', studentIdParam);
-                localStorage.setItem('email', urlParams.get('email') || '');
-                localStorage.setItem('surname', urlParams.get('surname') || '');
-                localStorage.setItem('firstName', urlParams.get('firstName') || '');
-                localStorage.setItem('middleName', urlParams.get('middleName') || '');
-                localStorage.setItem('yearSection', urlParams.get('yearSection') || '');
-                
-                // --- THE FIX: GRAB GROUP DATA FROM URL ---
-                const newGroupId = urlParams.get('groupid');
-                const newGroupNum = urlParams.get('groupnumber');
-                const newGroupName = urlParams.get('groupname');
-                if (newGroupId) localStorage.setItem('groupId', newGroupId);
-                if (newGroupNum) localStorage.setItem('groupNumber', newGroupNum);
-                if (newGroupName) localStorage.setItem('groupname', newGroupName);
+                ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
+                    const val = urlParams.get(key) || urlParams.get(key.toLowerCase()); // Catch casing diffs
+                    if (val) localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
+                });
                 
                 requestedPage = 'Dashboard';
-
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // --- 2. HANDLE GROUP SWITCHING ---
+            // Handle Group Switching
             const groupIdParam = urlParams.get('groupid');
             const groupNumParam = urlParams.get('groupnumber');
-            
-            if (groupIdParam && groupNumParam && !studentIdParam) { // Added !studentIdParam to prevent overriding the login set
+            if (groupIdParam && groupNumParam && !studentIdParam) {
                 localStorage.setItem('groupId', groupIdParam);
                 localStorage.setItem('groupNumber', groupNumParam);
-
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // --- 3. AUTHENTICATION CHECK ---
+            // Auth Check
             const savedStudentId = localStorage.getItem('studentId');
             const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
 
-            if (!isLoggedIn) {
-                if (requestedPage !== 'Register') {
-                    requestedPage = 'Login';
-                }
-            } else {
-                if (requestedPage === 'Login' || requestedPage === 'Register') {
-                    requestedPage = 'Dashboard';
-                    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-                }
+            if (!isLoggedIn && requestedPage !== 'Register') {
+                requestedPage = 'Login';
+            } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
+                requestedPage = 'Dashboard';
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // --- 4. BUILD IFRAME URL SAFELY ---
-            const iframe = document.getElementById('app-frame');
+            // Build URL and execute
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
             
             if (isLoggedIn) {
-                const savedEmail = localStorage.getItem('email') || '';
-                const savedFirstName = localStorage.getItem('firstName') || '';
-                const savedMiddleName = localStorage.getItem('middleName') || '';
-                const savedSurname = localStorage.getItem('surname') || '';
-                const savedYearSection = localStorage.getItem('yearSection') || '';
-                const savedGroupId = localStorage.getItem('groupId') || '';
-// Change this:
-const savedGroupNum = localStorage.getItem('groupNumber') || '';
-const savedGroupName = localStorage.getItem('groupname') || ''; // Standardize this
+                const params = {
+                    studentid: savedStudentId,
+                    email: localStorage.getItem('email'),
+                    firstName: localStorage.getItem('firstName'),
+                    middleName: localStorage.getItem('middleName'),
+                    surname: localStorage.getItem('surname'),
+                    yearSection: localStorage.getItem('yearSection'),
+                    groupid: localStorage.getItem('groupId'),
+                    groupnumber: localStorage.getItem('groupNumber'),
+                    groupname: localStorage.getItem('groupname')
+                };
 
-
-
-                if (savedStudentId) finalIframeUrl += "&studentid=" + encodeURIComponent(savedStudentId); 
-                if (savedEmail) finalIframeUrl += "&email=" + encodeURIComponent(savedEmail); 
-                if (savedFirstName) finalIframeUrl += "&firstName=" + encodeURIComponent(savedFirstName); 
-                if (savedMiddleName) finalIframeUrl += "&middleName=" + encodeURIComponent(savedMiddleName); 
-                if (savedSurname) finalIframeUrl += "&surname=" + encodeURIComponent(savedSurname); 
-                if (savedYearSection) finalIframeUrl += "&yearSection=" + encodeURIComponent(savedYearSection);
-                if (savedGroupId) finalIframeUrl += "&groupid=" + encodeURIComponent(savedGroupId);
-if (savedGroupNum) finalIframeUrl += "&groupnumber=" + encodeURIComponent(savedGroupNum);
-if (savedGroupName) finalIframeUrl += "&groupname=" + encodeURIComponent(savedGroupName); // Use Name, not Num
+                for (const [key, value] of Object.entries(params)) {
+                    if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
+                }
             }
             
             iframe.src = finalIframeUrl;
