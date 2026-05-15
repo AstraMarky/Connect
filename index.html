@@ -37,7 +37,6 @@
             transition: opacity 0.4s ease-out, visibility 0.4s;
         }
 
-        /* Gentle pulse on the logo, not a crazy spin */
         .loader-logo {
             width: 80px; 
             margin-bottom: 20px;
@@ -71,19 +70,17 @@
 
     <div id="clean-loader">
         <img src="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true" alt="ArcherStudio Logo" class="loader-logo">
-        <div class="loading-text">Loading Workspace</div>
+        <div class="loading-text">Taking aim...</div>
     </div>
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
    <script>
-        // Run this logic IMMEDIATELY, do not wait for window.onload
         (function initApp() {
             const GAS_URL = "https://script.google.com/macros/s/AKfycbyoxC3AlHOCuEMej8_Lwk3BwdE5K61djz_XpzTOxoBOGQtVk3_avPhA7VlE0igM_ZY/exec";
             const iframe = document.getElementById('app-frame');
             const loader = document.getElementById('clean-loader');
 
-            // Set up the hide-loader trigger for when the iframe finishes
             iframe.onload = function() {
                 loader.style.opacity = '0';
                 iframe.style.opacity = '1';
@@ -110,12 +107,23 @@
 
             let requestedPage = urlParams.get('page') || 'Login';
 
-            // Handle New Login Data
+            // --- Handle New Login Data ---
             const studentIdParam = urlParams.get('studentid');
             if (studentIdParam && studentIdParam.trim() !== "") {
                 ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
                     const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
-                    if (val) localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
+                    
+                    // VALIDATION: Only save if it has a value AND is not a placeholder
+                    if (val) {
+                        const isPlaceholder = 
+                            (key.toLowerCase() === 'groupid' && val === '0') ||
+                            (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
+                            (key.toLowerCase() === 'groupname' && val === 'No Group Name');
+                        
+                        if (!isPlaceholder) {
+                            localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
+                        }
+                    }
                 });
                 
                 requestedPage = 'Dashboard';
@@ -128,10 +136,15 @@
             const groupNumParam = urlParams.get('groupnumber');
             const groupNameParam = urlParams.get('groupname');
             
-            if (groupIdParam && groupNumParam && !studentIdParam) {
+            // VALIDATION: Only process group switch if it is not the placeholder ID/Number
+            if (groupIdParam && groupNumParam && !studentIdParam && groupIdParam !== '0' && groupNumParam !== 'No Group') {
                 localStorage.setItem('groupId', groupIdParam);
                 localStorage.setItem('groupNumber', groupNumParam);
-                if (groupNameParam) localStorage.setItem('groupname', groupNameParam);
+                
+                // VALIDATION: Only save groupname if it isn't the placeholder
+                if (groupNameParam && groupNameParam !== 'No Group Name') {
+                    localStorage.setItem('groupname', groupNameParam);
+                }
                 
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
