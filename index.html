@@ -8,6 +8,9 @@
     <link rel="icon" type="image/png" href="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true">
     <meta name="description" content="Access the ArcherStudio Connect portal to manage your student profile, view business solutions, and collaborate with our creative team.">
 
+    <link rel="preconnect" href="https://script.google.com">
+    <link rel="preconnect" href="https://script.googleusercontent.com">
+
     <style>
         body, html {
             margin: 0;
@@ -66,37 +69,35 @@
 </head>
 <body>
 
-    <!-- CLEAN BRANDED LOADER -->
     <div id="clean-loader">
         <img src="https://github.com/Accident404/SamahanNgMgabaluga/blob/main/Resources/logo.png?raw=true" alt="ArcherStudio Logo" class="loader-logo">
         <div class="loading-text">Loading Workspace</div>
     </div>
 
-    <!-- YOUR APP IFRAME -->
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
 
    <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyoxC3AlHOCuEMej8_Lwk3BwdE5K61djz_XpzTOxoBOGQtVk3_avPhA7VlE0igM_ZY/exec";
-        const iframe = document.getElementById('app-frame');
-        const loader = document.getElementById('clean-loader');
+        // Run this logic IMMEDIATELY, do not wait for window.onload
+        (function initApp() {
+            const GAS_URL = "https://script.google.com/macros/s/AKfycbyoxC3AlHOCuEMej8_Lwk3BwdE5K61djz_XpzTOxoBOGQtVk3_avPhA7VlE0igM_ZY/exec";
+            const iframe = document.getElementById('app-frame');
+            const loader = document.getElementById('clean-loader');
 
-        // Wait for Google to finish loading the iframe content
-        iframe.onload = function() {
-            loader.style.opacity = '0';
-            iframe.style.opacity = '1';
-            setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
-        };
+            // Set up the hide-loader trigger for when the iframe finishes
+            iframe.onload = function() {
+                loader.style.opacity = '0';
+                iframe.style.opacity = '1';
+                setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+            };
 
-        window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             
-            // --- NEW: Clear Group Data ---
+            // --- Clear Group Data ---
             if (urlParams.get('clear') === 'groups') {
                 localStorage.removeItem('groupId');
                 localStorage.removeItem('groupNumber');
                 localStorage.removeItem('groupname');
                 
-                // Clean the URL so the user just sees ?page=Collaboration
                 let reqPage = urlParams.get('page') || 'Collaboration';
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
@@ -113,7 +114,7 @@
             const studentIdParam = urlParams.get('studentid');
             if (studentIdParam && studentIdParam.trim() !== "") {
                 ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
-                    const val = urlParams.get(key) || urlParams.get(key.toLowerCase()); // Catch casing diffs
+                    const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
                     if (val) localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
                 });
                 
@@ -122,7 +123,7 @@
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // --- UPDATED: Handle Group Switching (Includes groupname) ---
+            // --- Handle Group Switching ---
             const groupIdParam = urlParams.get('groupid');
             const groupNumParam = urlParams.get('groupnumber');
             const groupNameParam = urlParams.get('groupname');
@@ -148,7 +149,7 @@
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
 
-            // Build URL and execute
+            // Build URL and execute the iframe fetch immediately
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
             
             if (isLoggedIn) {
@@ -169,8 +170,9 @@
                 }
             }
             
+            // Trigger the iframe load instantly
             iframe.src = finalIframeUrl;
-        };
-    </script>
+        })();
+   </script>
 </body>
 </html>
