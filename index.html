@@ -10,6 +10,7 @@
 
     <link rel="preconnect" href="https://script.google.com">
     <link rel="preconnect" href="https://script.googleusercontent.com">
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 
     <style>
         body, html {
@@ -164,6 +165,8 @@
                         }
                     }
                 });
+
+                
                 
                 requestedPage = 'Dashboard';
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
@@ -200,6 +203,24 @@
                 const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
                 window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
             }
+
+// --- OneSignal Initialization Engine ---
+window.OneSignal = window.OneSignal || [];
+OneSignal.push(async function() {
+    await OneSignal.init({
+        appId: "741e0f30-0892-4a2b-a835-09182c50a698",
+        allowLocalhostAsSecureOrigin: true, 
+    });
+
+
+    if (isLoggedIn) {
+
+        await OneSignal.login(savedStudentId.trim());
+        console.log("OneSignal push stream securely linked to Student ID:", savedStudentId);
+    } else {
+        await OneSignal.logout();
+    }
+});
 
             // Build URL and execute the iframe fetch immediately
             let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
