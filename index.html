@@ -93,106 +93,7 @@
             transition: opacity 0.5s ease-in; 
         }
     </style>
-<script>
-(function(w,d, s, id) {
-  if(typeof(w.webpushr)!=='undefined') return;
-  w.webpushr=w.webpushr||function(){(w.webpushr.q=w.webpushr.q||[]).push(arguments)};
-  var js, fjs = d.getElementsByTagName(s)[0];
-  js = d.createElement(s); js.id = id; js.async=1; js.src = "https://cdn.webpushr.com/app.min.js";
-  fjs.parentNode.appendChild(js);
-}(window,document, 'script', 'webpushr-jssdk'));
 
-// Initialize with your Webpushr Key
-webpushr('setup',{'key':'BCdMKwijhFceNbwJDzCEiLnOQ58cpXexuSh5Hy3MgtejIDjsh8ewnn2kJ8ZQHvDkOLJ3u4-kXNQEiSOFxCa4k7w' });
-
-// Global variable to keep track of the Webpushr ID
-let webpushrSid = null;
-
-// This callback fires automatically when Webpushr detects an active push subscription
-webpushr('fetch_id', function (sid) {
-    console.log('Webpushr Subscriber ID assigned:', sid);
-    webpushrSid = sid;
-    
-    // If the student already has an email saved in localStorage, sync everything up
-    const storedEmail = localStorage.getItem("studentEmail");
-    if (storedEmail) {
-        unlockWorkspace();
-        syncUserWithBackend(storedEmail, sid);
-    }
-});
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    initGatekeeper();
-});
-
-function initGatekeeper() {
-    const storedEmail = localStorage.getItem("studentEmail");
-    const gatekeeperOverlay = document.getElementById("gatekeeperOverlay");
-
-    // If no email or no push ID is verified yet, make sure the glass wall is active
-    if (!storedEmail || !webpushrSid) {
-        gatekeeperOverlay.style.display = "flex";
-    } else {
-        unlockWorkspace();
-    }
-}
-
-// Function triggered when clicking the "Save & Authenticate" button
-function handleGatekeeperSubmit() {
-    const emailInput = document.getElementById("gatekeeperEmail").value.trim();
-    
-    if (!emailInput || !emailInput.includes("@")) {
-        alert("Please enter a valid academic email address.");
-        return;
-    }
-
-    // Save email to local browser memory
-    localStorage.getItem("studentEmail", emailInput);
-
-    // Request native browser permission for push notifications
-    // Note: Make sure your Webpushr dashboard setting doesn't conflict or double-prompt
-    if (Notification.permission !== "granted") {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                // Once granted, the webpushr('fetch_id') callback above will naturally wake up
-                alert("Permission granted! Synchronizing workspace keys...");
-            } else {
-                alert("Push permissions are required to receive live updates from the platform.");
-            }
-        });
-    } else if (webpushrSid) {
-        // If permission was already granted and we have the ID, go straight through
-        unlockWorkspace();
-        syncUserWithBackend(emailInput, webpushrSid);
-    }
-}
-
-function unlockWorkspace() {
-    const gatekeeperOverlay = document.getElementById("gatekeeperOverlay");
-    if (gatekeeperOverlay) {
-        gatekeeperOverlay.style.fadeOut ? gatekeeperOverlay.fadeOut() : gatekeeperOverlay.style.display = "none";
-    }
-}
-
-// Packages the details up cleanly and relays it to your Google Apps Script database
-function syncUserWithBackend(email, sid) {
-    const backendUrl = "YOUR_GOOGLE_APPS_SCRIPT_EXEC_URL";
-    
-    fetch(backendUrl, {
-        method: "POST",
-        mode: "no-cors", // Required to bypass CORS constraints with Google Apps Script
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            action: "registerPushToken",
-            email: email,
-            webpushrSid: sid
-        })
-    })
-    .then(() => console.log("Successfully bound Email and Webpushr SID on server."))
-    .catch(err => console.error("Database alignment error:", err));
-}
-</script>
 </head>
 <body>
 
@@ -226,120 +127,250 @@ function syncUserWithBackend(email, sid) {
     </div>
 </div>
     
+<div id="gatekeeper-overlay" class="gatekeeper-overlay" style="display: none;">
+    <div class="gatekeeper-card">
+        <h2>Sync Your Workspace</h2>
+        <div class="gatekeeper-form">
+            <input type="email" id="gatekeeper-email" placeholder="Enter your email" required>
+            <button type="button" id="custom-notification-btn">Enable Workspace Alerts</button>
+            <p id="gatekeeper-error" class="error-text" style="display: none;"></p>
+        </div>
+    </div>
+</div>
+
 <script>
+    // --- START WEBPUSHR TRACKING CODE --- 
+    (function(w,d, s, id) {
+      if(typeof(w.webpushr)!=='undefined') return;
+      w.webpushr=w.webpushr||function(){(w.webpushr.q=w.webpushr.q||[]).push(arguments)};
+      var js, fjs = d.getElementsByTagName(s)[0];
+      js = d.createElement(s); js.id = id; js.async=1; js.src = "https://cdn.webpushr.com/app.min.js";
+      fjs.parentNode.appendChild(js);
+    }(window,document, 'script', 'webpushr-jssdk'));
 
-        (function initApp() {
-            const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
-            const iframe = document.getElementById('app-frame');
-            const loader = document.getElementById('clean-loader');
+    webpushr('setup',{'key':'BCdMKwijhFceNbwJDzCEiLnOQ58cpXexuSh5Hy3MgtejIDjsh8ewnn2kJ8ZQHvDkOLJ3u4-kXNQEiSOFxCa4k7w' });
 
-            iframe.onload = function() {
-                loader.style.opacity = '0';
-                iframe.style.opacity = '1';
-                setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
-            };
+    let webpushrSid = null;
 
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // --- Clear Group Data ---
-            if (urlParams.get('clear') === 'groups') {
-                localStorage.removeItem('groupId');
-                localStorage.removeItem('groupNumber');
-                localStorage.removeItem('groupname');
-                
-                let reqPage = urlParams.get('page') || 'Collaboration';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
+    // Direct platform subscription verification event hook
+    webpushr('fetch_id', function (sid) {
+        console.log('Webpushr Subscriber ID assigned:', sid);
+        webpushrSid = sid;
+        
+        const cachedEmail = localStorage.getItem('email');
+        if (cachedEmail) {
+            unlockWorkspace();
+            syncUserWithBackend(cachedEmail, sid);
+        }
+    });
+    // --- END WEBPUSHR TRACKING CODE ---
 
-            if (urlParams.get('logout') === 'true') {
-                localStorage.clear(); 
-                window.history.replaceState({}, '', window.location.pathname + '?page=Login');
-            }
+    // Unified Application Runtime Context Router
+    (function initApp() {
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
+        const iframe = document.getElementById('app-frame');
+        const loader = document.getElementById('clean-loader');
 
-            let requestedPage = urlParams.get('page') || 'Login';
+        // Iframe state loading transitions
+        if (iframe) {
+            iframe.onload = function() {
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+                }
+                iframe.style.opacity = '1';
+            };
+        }
 
-            // --- Handle New Login Data ---
-            const studentIdParam = urlParams.get('studentid');
-            if (studentIdParam && studentIdParam.trim() !== "") {
-                ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
-                    const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
-                    
-                    // VALIDATION: Only save if it has a value AND is not a placeholder
-                    if (val) {
-                        const isPlaceholder = 
-                            (key.toLowerCase() === 'groupid' && val === '0') ||
-                            (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
-                            (key.toLowerCase() === 'groupname' && val === 'No Group Name');
-                        
-                        if (!isPlaceholder) {
-                            localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
-                        }
-                    }
-                });
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // --- Clear Group Data Handling ---
+        if (urlParams.get('clear') === 'groups') {
+            localStorage.removeItem('groupId');
+            localStorage.removeItem('groupNumber');
+            localStorage.removeItem('groupname');
+            
+            let reqPage = urlParams.get('page') || 'Collaboration';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
 
-             
-                
-                requestedPage = 'Dashboard';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
+        // --- Handle Direct Application Logout Route ---
+        if (urlParams.get('logout') === 'true') {
+            localStorage.clear(); 
+            window.history.replaceState({}, '', window.location.pathname + '?page=Login');
+        }
 
-            // --- Handle Group Switching ---
-            const groupIdParam = urlParams.get('groupid');
-            const groupNumParam = urlParams.get('groupnumber');
-            const groupNameParam = urlParams.get('groupname');
-            
-            // VALIDATION: Only process group switch if it is not the placeholder ID/Number
-            if (groupIdParam && groupNumParam && !studentIdParam && groupIdParam !== '0' && groupNumParam !== 'No Group') {
-                localStorage.setItem('groupId', groupIdParam);
-                localStorage.setItem('groupNumber', groupNumParam);
-                
-                // VALIDATION: Only save groupname if it isn't the placeholder
-                if (groupNameParam && groupNameParam !== 'No Group Name') {
-                    localStorage.setItem('groupname', groupNameParam);
-                }
-                
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
+        let requestedPage = urlParams.get('page') || 'Login';
 
-            // Auth Check
-            const savedStudentId = localStorage.getItem('studentId');
-            const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+        // --- Handle Incoming Authorization Data Matrix ---
+        const studentIdParam = urlParams.get('studentid');
+        if (studentIdParam && studentIdParam.trim() !== "") {
+            ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
+                const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
+                if (val) {
+                    const isPlaceholder = 
+                        (key.toLowerCase() === 'groupid' && val === '0') ||
+                        (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
+                        (key.toLowerCase() === 'groupname' && val === 'No Group Name');
+                    
+                    if (!isPlaceholder) {
+                        localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
+                    }
+                }
+            });
 
-            if (!isLoggedIn && requestedPage !== 'Register') {
-                requestedPage = 'Login';
-            } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
-                requestedPage = 'Dashboard';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
+            requestedPage = 'Dashboard';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
 
-            // Build URL and execute the iframe fetch immediately
-            let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
-            
-            if (isLoggedIn) {
-                const params = {
-                    studentid: savedStudentId,
-                    email: localStorage.getItem('email'),
-                    firstName: localStorage.getItem('firstName'),
-                    middleName: localStorage.getItem('middleName'),
-                    surname: localStorage.getItem('surname'),
-                    yearSection: localStorage.getItem('yearSection'),
-                    groupid: localStorage.getItem('groupId'),
-                    groupnumber: localStorage.getItem('groupNumber'),
-                    groupname: localStorage.getItem('groupname')
-                };
+        // --- Handle Running Group Modifications ---
+        const groupIdParam = urlParams.get('groupid');
+        const groupNumParam = urlParams.get('groupnumber');
+        const groupNameParam = urlParams.get('groupname');
+        
+        if (groupIdParam && groupNumParam && !studentIdParam && groupIdParam !== '0' && groupNumParam !== 'No Group') {
+            localStorage.setItem('groupId', groupIdParam);
+            localStorage.setItem('groupNumber', groupNumParam);
+            if (groupNameParam && groupNameParam !== 'No Group Name') {
+                localStorage.setItem('groupname', groupNameParam);
+            }
+            
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
 
-                for (const [key, value] of Object.entries(params)) {
-                    if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
-                }
-            }
-            
-            // Trigger the iframe load instantly
-            iframe.src = finalIframeUrl;
-        })();
-   </script>
+        // Core Session Verification Checks
+        const savedStudentId = localStorage.getItem('studentId');
+        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+
+        if (!isLoggedIn && requestedPage !== 'Register') {
+            requestedPage = 'Login';
+        } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
+            requestedPage = 'Dashboard';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // Generate Distribution Destination String Targets
+        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+        if (isLoggedIn) {
+            const params = {
+                studentid: savedStudentId,
+                email: localStorage.getItem('email'),
+                firstName: localStorage.getItem('firstName'),
+                middleName: localStorage.getItem('middleName'),
+                surname: localStorage.getItem('surname'),
+                yearSection: localStorage.getItem('yearSection'),
+                groupid: localStorage.getItem('groupId'),
+                groupnumber: localStorage.getItem('groupNumber'),
+                groupname: localStorage.getItem('groupname')
+            };
+
+            for (const [key, value] of Object.entries(params)) {
+                if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
+            }
+        }
+        
+        if (iframe) iframe.src = finalIframeUrl;
+
+        // =========================================================================
+        // --- SAFE WEBPUSHR UI GATEKEEPER IMPLEMENTATION ---
+        // =========================================================================
+        document.addEventListener("DOMContentLoaded", function() {
+            initGatekeeper();
+        });
+
+        function initGatekeeper() {
+            const overlay = document.getElementById('gatekeeper-overlay');
+            const emailInput = document.getElementById('gatekeeper-email');
+            const syncButton = document.getElementById('custom-notification-btn');
+
+            // Defensive Check: Stop execution if HTML elements are missing
+            if (!overlay || !emailInput || !syncButton) {
+                console.warn("Gatekeeper UI components missing from DOM. Skipping interface initialization.");
+                return;
+            }
+
+            // Auto-populate input row if local data profile keys exist
+            const cachedEmail = localStorage.getItem('email');
+            if (cachedEmail) {
+                emailInput.value = cachedEmail;
+            }
+
+            // If user is validated and webpushr processed active tokens, break lock layout down
+            if (cachedEmail && webpushrSid) {
+                unlockWorkspace();
+                return;
+            }
+
+            // Force visibility state if criteria are unfulfilled
+            overlay.style.display = 'flex';
+
+            // Custom Button Action Setup
+            syncButton.addEventListener('click', function() {
+                const targetEmail = emailInput.value.trim();
+                if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+                    const errField = document.getElementById('gatekeeper-error');
+                    if (errField) {
+                        errField.innerText = "Please confirm a valid email format before registering.";
+                        errField.style.display = 'block';
+                    }
+                    return;
+                }
+
+                localStorage.setItem('email', targetEmail);
+
+                // Check if browser native push API is dropped/blocked via extension client
+                if (typeof Notification === "undefined") {
+                    alert("This browser context does not support native notification alerts.");
+                    unlockWorkspace(); // Graceful bypass
+                    return;
+                }
+
+                if (Notification.permission !== "granted") {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            console.log("System notification permissions authorized.");
+                            // If ad-blocker prevented SDK tracking completely, skip freeze scenarios gracefully
+                            if (!window.webpushr) {
+                                unlockWorkspace();
+                            }
+                        } else {
+                            alert("Push verification configurations are necessary to access target assets.");
+                        }
+                    });
+                } else {
+                    unlockWorkspace();
+                    if (webpushrSid) syncUserWithBackend(targetEmail, webpushrSid);
+                }
+            });
+        }
+
+        function unlockWorkspace() {
+            const overlay = document.getElementById('gatekeeper-overlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function syncUserWithBackend(email, sid) {
+            // Re-verify tracking engine structures
+            if (!email || !sid) return;
+            
+            fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "registerPushToken",
+                    email: email,
+                    webpushrSid: sid
+                })
+            })
+            .then(() => console.log("Profile aligned on Google Sheet engine targets."))
+            .catch(err => console.error("Database connection fault pipeline: ", err));
+        }
+    })();
+</script>
 </body>
 </html>
