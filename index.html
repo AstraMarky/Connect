@@ -105,119 +105,236 @@
     </div>
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
-   <script>
-        (function initApp() {
-            const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
-            const iframe = document.getElementById('app-frame');
-            const loader = document.getElementById('clean-loader');
 
-            iframe.onload = function() {
-                loader.style.opacity = '0';
-                iframe.style.opacity = '1';
-                setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+    <div id="onesignal-gatekeeper" class="gatekeeper-overlay" style="display: none;">
+    <div class="gatekeeper-card">
+        <div class="gatekeeper-icon">
+            <i class="bi bi-bell-fill"></i>
+        </div>
+        <h2>Sync Your Workspace</h2>
+        <p>To access your collaboration workspace, please enable push notifications and confirm your email address for instant project alerts.</p>
+        
+        <div class="gatekeeper-form">
+            <div class="input-group">
+                <input type="email" id="gatekeeper-email" placeholder="Enter your institutional email" required>
+            </div>
+            
+            <div class="onesignal-customlink-container"></div>
+            
+            <p id="gatekeeper-error" class="error-text" style="display: none;"></p>
+        </div>
+    </div>
+</div>
+    
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
+<script>
+    (function initApp() {
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
+        const iframe = document.getElementById('app-frame');
+        const loader = document.getElementById('clean-loader');
+
+        // --- Standard Iframe Transition Handler ---
+        iframe.onload = function() {
+            loader.style.opacity = '0';
+            iframe.style.opacity = '1';
+            setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // --- Clear Group Data ---
+        if (urlParams.get('clear') === 'groups') {
+            localStorage.removeItem('groupId');
+            localStorage.removeItem('groupNumber');
+            localStorage.removeItem('groupname');
+            
+            let reqPage = urlParams.get('page') || 'Collaboration';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // --- Logout Action Hook ---
+        if (urlParams.get('logout') === 'true') {
+            localStorage.clear(); 
+            window.history.replaceState({}, '', window.location.pathname + '?page=Login');
+        }
+
+        let requestedPage = urlParams.get('page') || 'Login';
+
+        // --- Handle New Login Data ---
+        const studentIdParam = urlParams.get('studentid');
+        if (studentIdParam && studentIdParam.trim() !== "") {
+            ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
+                const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
+                
+                // VALIDATION: Only save if it has a value AND is not a placeholder
+                if (val) {
+                    const isPlaceholder = 
+                        (key.toLowerCase() === 'groupid' && val === '0') ||
+                        (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
+                        (key.toLowerCase() === 'groupname' && val === 'No Group Name');
+                    
+                    if (!isPlaceholder) {
+                        localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
+                    }
+                }
+            });
+
+            requestedPage = 'Dashboard';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // --- Handle Group Switching ---
+        const groupIdParam = urlParams.get('groupid');
+        const groupNumParam = urlParams.get('groupnumber');
+        const groupNameParam = urlParams.get('groupname');
+        
+        // VALIDATION: Only process group switch if it is not the placeholder ID/Number
+        if (groupIdParam && groupNumParam && !studentIdParam && groupIdParam !== '0' && groupNumParam !== 'No Group') {
+            localStorage.setItem('groupId', groupIdParam);
+            localStorage.setItem('groupNumber', groupNumParam);
+            
+            // VALIDATION: Only save groupname if it isn't the placeholder
+            if (groupNameParam && groupNameParam !== 'No Group Name') {
+                localStorage.setItem('groupname', groupNameParam);
+            }
+            
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // --- Core Session Auth Check ---
+        const savedStudentId = localStorage.getItem('studentId');
+        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+
+        if (!isLoggedIn && requestedPage !== 'Register') {
+            requestedPage = 'Login';
+        } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
+            requestedPage = 'Dashboard';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // --- Build Iframe Content Distribution URL ---
+        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+        
+        if (isLoggedIn) {
+            const params = {
+                studentid: savedStudentId,
+                email: localStorage.getItem('email'),
+                firstName: localStorage.getItem('firstName'),
+                middleName: localStorage.getItem('middleName'),
+                surname: localStorage.getItem('surname'),
+                yearSection: localStorage.getItem('yearSection'),
+                groupid: localStorage.getItem('groupId'),
+                groupnumber: localStorage.getItem('groupNumber'),
+                groupname: localStorage.getItem('groupname')
             };
 
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // --- Clear Group Data ---
-            if (urlParams.get('clear') === 'groups') {
-                localStorage.removeItem('groupId');
-                localStorage.removeItem('groupNumber');
-                localStorage.removeItem('groupname');
-                
-                let reqPage = urlParams.get('page') || 'Collaboration';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+            for (const [key, value] of Object.entries(params)) {
+                if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
             }
+        }
+        
+        // Trigger the iframe load instantly behind the backdrop scenes
+        iframe.src = finalIframeUrl;
 
-            if (urlParams.get('logout') === 'true') {
-                localStorage.clear(); 
-                window.history.replaceState({}, '', window.location.pathname + '?page=Login');
-            }
-
-            let requestedPage = urlParams.get('page') || 'Login';
-
-            // --- Handle New Login Data ---
-            const studentIdParam = urlParams.get('studentid');
-            if (studentIdParam && studentIdParam.trim() !== "") {
-                ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname'].forEach(key => {
-                    const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
-                    
-                    // VALIDATION: Only save if it has a value AND is not a placeholder
-                    if (val) {
-                        const isPlaceholder = 
-                            (key.toLowerCase() === 'groupid' && val === '0') ||
-                            (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
-                            (key.toLowerCase() === 'groupname' && val === 'No Group Name');
-                        
-                        if (!isPlaceholder) {
-                            localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
+        // =========================================================================
+        // --- ONESIGNAL PROFILE SYNC & GATEKEEPER OVERLAY ENGINE ---
+        // =========================================================================
+        window.OneSignal = window.OneSignal || [];
+        OneSignal.push(async function() {
+            await OneSignal.init({
+                appId: "741e0f30-0892-4a2b-a835-09182c50a698",
+                allowLocalhostAsSecureOrigin: true,
+                promptOptions: {
+                    customlink: {
+                        enabled: true, 
+                        style: "button", 
+                        size: "medium", 
+                        color: {
+                            button: "#3b82f6", 
+                            text: "#ffffff"
+                        },
+                        text: {
+                            explanation: "",
+                            subscribe: "Enable Notifications",
+                            unsubscribe: "Disable Notifications"
                         }
                     }
-                });
-
-                
-                
-                requestedPage = 'Dashboard';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
-
-            // --- Handle Group Switching ---
-            const groupIdParam = urlParams.get('groupid');
-            const groupNumParam = urlParams.get('groupnumber');
-            const groupNameParam = urlParams.get('groupname');
-            
-            // VALIDATION: Only process group switch if it is not the placeholder ID/Number
-            if (groupIdParam && groupNumParam && !studentIdParam && groupIdParam !== '0' && groupNumParam !== 'No Group') {
-                localStorage.setItem('groupId', groupIdParam);
-                localStorage.setItem('groupNumber', groupNumParam);
-                
-                // VALIDATION: Only save groupname if it isn't the placeholder
-                if (groupNameParam && groupNameParam !== 'No Group Name') {
-                    localStorage.setItem('groupname', groupNameParam);
                 }
+            });
+
+            const overlay = document.getElementById('onesignal-gatekeeper');
+            const emailInput = document.getElementById('gatekeeper-email');
+            const errorText = document.getElementById('gatekeeper-error');
+
+            // Auto-populate email field if already cached inside local system keys
+            const cachedEmail = localStorage.getItem('email');
+            if (cachedEmail) {
+                emailInput.value = cachedEmail;
+            }
+
+            /**
+             * Dynamically checks permission and input properties to manage lock overlay visibility
+             */
+            async function evaluateGatekeeperAccess() {
+                const isNotificationSubscribed = OneSignal.User.PushSubscription.optedIn;
+                const currentEmailInput = emailInput.value.trim();
                 
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
+                // Simple regex validation structure for target institution domains
+                const isEmailValid = currentEmailInput !== "" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentEmailInput);
 
-            // Auth Check
-            const savedStudentId = localStorage.getItem('studentId');
-            const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+                if (isNotificationSubscribed && isEmailValid) {
+                    try {
+                        // 1. Sync email directly to OneSignal profile database channels
+                        await OneSignal.User.addEmail(currentEmailInput);
+                        
+                        // 2. If user already has an active authenticated student session, map external id hook
+                        const freshStudentId = localStorage.getItem('studentId');
+                        if (freshStudentId && freshStudentId.trim() !== "") {
+                            await OneSignal.login(freshStudentId.trim());
+                        }
 
-            if (!isLoggedIn && requestedPage !== 'Register') {
-                requestedPage = 'Login';
-            } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
-                requestedPage = 'Dashboard';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
+                        // Save current valid email to local storage if it changed
+                        localStorage.setItem('email', currentEmailInput);
 
-            // Build URL and execute the iframe fetch immediately
-            let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
-            
-            if (isLoggedIn) {
-                const params = {
-                    studentid: savedStudentId,
-                    email: localStorage.getItem('email'),
-                    firstName: localStorage.getItem('firstName'),
-                    middleName: localStorage.getItem('middleName'),
-                    surname: localStorage.getItem('surname'),
-                    yearSection: localStorage.getItem('yearSection'),
-                    groupid: localStorage.getItem('groupId'),
-                    groupnumber: localStorage.getItem('groupNumber'),
-                    groupname: localStorage.getItem('groupname')
-                };
-
-                for (const [key, value] of Object.entries(params)) {
-                    if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
+                        // 3. Dismiss lock overlay instantly
+                        overlay.style.opacity = '0';
+                        setTimeout(() => { overlay.style.display = 'none'; }, 400);
+                    } catch (err) {
+                        console.error("Identity synchronization pipeline exception: ", err);
+                    }
+                } else {
+                    // Lock down view layers if baseline check fail scenarios match
+                    overlay.style.display = 'flex';
+                    overlay.style.opacity = '1';
+                    
+                    if (!isEmailValid && isNotificationSubscribed) {
+                        errorText.innerText = "Please confirm a valid email format to finalize synchronization registration gates.";
+                        errorText.style.display = 'block';
+                    } else {
+                        errorText.style.display = 'none';
+                    }
                 }
             }
-            
-            // Trigger the iframe load instantly
-            iframe.src = finalIframeUrl;
-        })();
-   </script>
+
+            // Fire access evaluation sequence immediately on script boot runtime cycles
+            await evaluateGatekeeperAccess();
+
+            // Hook Event Listener: Re-evaluate when custom layout button is triggered
+            OneSignal.User.PushSubscription.addEventListener("change", async (event) => {
+                await evaluateGatekeeperAccess();
+            });
+
+            // Hook Event Listener: Tracks input states live as user changes form character states
+            emailInput.addEventListener('input', async () => {
+                await evaluateGatekeeperAccess();
+            });
+        });
+    })();
+</script>
 </body>
 </html>
