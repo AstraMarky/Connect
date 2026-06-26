@@ -105,7 +105,15 @@
     </div>
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
-
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "741e0f30-0892-4a2b-a835-09182c50a698",
+    });
+  });
+</script>
    <script>
         (function initApp() {
             const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
