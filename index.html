@@ -112,88 +112,115 @@
         const iframe = document.getElementById('app-frame');
         const loader = document.getElementById('clean-loader');
 
-        iframe.onload = function () {
+        iframe.onload = function() {
             loader.style.opacity = '0';
             iframe.style.opacity = '1';
             setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
         };
 
-        // Parse ONCE, immediately — before anything mutates the URL
+        // Snapshot ALL url params immediately before anything mutates the URL
         const urlParams = new URLSearchParams(window.location.search);
-
-        // Snapshot every URL param we care about BEFORE any replaceState
         const urlPage        = urlParams.get('page');
-        const urlGroupId     = urlParams.get('groupid')     || urlParams.get('groupId')     || null;
-        const urlGroupNumber = urlParams.get('groupnumber') || urlParams.get('groupNumber') || null;
-        const urlGroupName   = urlParams.get('groupname')   || null;
+        const urlGroupId     = urlParams.get('groupid')     || urlParams.get('groupId');
+        const urlGroupNum    = urlParams.get('groupnumber') || urlParams.get('groupNumber');
+        const urlGroupName   = urlParams.get('groupname');
+        const urlStudentId   = urlParams.get('studentid');
+        const urlLogout      = urlParams.get('logout');
+        const urlClear       = urlParams.get('clear');
 
-        // --- Handle New Login Data (Saving to localStorage) ---
-        const studentIdParam = urlParams.get('studentid');
-        if (studentIdParam && studentIdParam.trim() !== "") {
-            const keysToSave = ['studentId', 'email', 'surname', 'firstName', 'middleName',
-                                 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'];
+        // --- Clear Group Data ---
+        if (urlClear === 'groups') {
+            localStorage.removeItem('groupId');
+            localStorage.removeItem('groupNumber');
+            localStorage.removeItem('groupname');
+            const reqPage = urlPage || 'Collaboration';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
 
-            keysToSave.forEach(key => {
+        // --- Logout ---
+        if (urlLogout === 'true') {
+            localStorage.clear();
+            window.history.replaceState({}, '', window.location.pathname + '?page=Login');
+        }
+
+        let requestedPage = urlPage || 'Login';
+
+        // --- Handle New Login Data ---
+        if (urlStudentId && urlStudentId.trim() !== "") {
+            ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'].forEach(key => {
                 const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
-                if (val && val !== 'undefined' && val !== 'null') {
-                    let storageKey = key;
-                    if (key === 'groupid')     storageKey = 'groupId';
-                    if (key === 'groupnumber') storageKey = 'groupNumber';
-                    if (key === 'groupname')   storageKey = 'groupname';
-                    localStorage.setItem(storageKey, val);
+
+                if (val) {
+                    const isPlaceholder =
+                        (key.toLowerCase() === 'groupid'     && val === '0') ||
+                        (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
+                        (key.toLowerCase() === 'groupname'   && val === 'No Group Name');
+
+                    if (!isPlaceholder) {
+                        localStorage.setItem(
+                            key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key,
+                            val
+                        );
+                    }
                 }
             });
 
-            // Clean the URL — but we already snapshotted everything above so nothing is lost
+            requestedPage = 'Dashboard';
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // --- Handle Group Switching ---
+        // Use snapshotted values — not re-parsed from location (which may have been wiped by replaceState)
+        if (urlGroupId && urlGroupNum && !urlStudentId && urlGroupId !== '0' && urlGroupNum !== 'No Group') {
+            localStorage.setItem('groupId', urlGroupId);
+            localStorage.setItem('groupNumber', urlGroupNum);
+
+            if (urlGroupName && urlGroupName !== 'No Group Name') {
+                localStorage.setItem('groupname', urlGroupName);
+            }
+
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
             window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
         }
 
         // --- Auth Check ---
         const savedStudentId = localStorage.getItem('studentId');
         const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
-        const requestedPage = urlPage || (isLoggedIn ? 'Dashboard' : 'Login');
+
+        if (!isLoggedIn && requestedPage !== 'Register') {
+            requestedPage = 'Login';
+        } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
+            requestedPage = 'Dashboard';
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
 
         // --- Build iframe URL ---
+        // Use snapshotted URL group params with localStorage as fallback
+        // This ensures group switching always forwards the intended group,
+        // even if localStorage hasn't flushed yet in some edge cases
         let finalIframeUrl = GAS_URL + "?page=" + encodeURIComponent(requestedPage);
 
         if (isLoggedIn) {
-            // URL params always win over localStorage for context switching
-            const groupid     = urlGroupId     || localStorage.getItem('groupId')     || '';
-            const groupnumber = urlGroupNumber || localStorage.getItem('groupNumber') || '';
-            const groupname   = urlGroupName   || localStorage.getItem('groupname')   || '';
-
-            const params = {
+const params = {
                 studentid:   savedStudentId,
                 email:       localStorage.getItem('email')       || '',
                 firstName:   localStorage.getItem('firstName')   || '',
                 middleName:  localStorage.getItem('middleName')  || '',
                 surname:     localStorage.getItem('surname')     || '',
                 yearSection: localStorage.getItem('yearSection') || '',
-                groupid,
-                groupnumber,
-                groupname,
+                groupid:     urlGroupId  || localStorage.getItem('groupId')     || '',
+                groupnumber: urlGroupNum || localStorage.getItem('groupNumber') || '',
+                groupname:   urlGroupName !== 'No Group Name' ? (urlGroupName || localStorage.getItem('groupname') || '') : (localStorage.getItem('groupname') || ''),
                 address:     localStorage.getItem('address')     || '',
-                phoneNumber: localStorage.getItem('phoneNumber') || ''
+                phoneNumber: localStorage.getItem('phoneNumber') || '',
             };
 
-            const handledKeys = new Set([
-                'page','studentid','groupid','groupnumber','groupname',
-                'email','firstname','middlename','surname','yearsection','address','phonenumber'
-            ]);
-
             for (const [key, value] of Object.entries(params)) {
-                if (value !== null && value !== undefined && value !== '') {
-                    finalIframeUrl += `&${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-                }
+                if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
             }
-
-            // Forward any unhandled extra URL params as-is
-            urlParams.forEach((value, key) => {
-                if (!handledKeys.has(key.toLowerCase()) && value && value !== 'undefined' && value !== 'null') {
-                    finalIframeUrl += `&${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-                }
-            });
         }
 
         iframe.src = finalIframeUrl;
