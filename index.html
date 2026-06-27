@@ -106,117 +106,73 @@
     </div>
 
     <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
-        <script>
-        (function initApp() {
-            const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
-            const iframe = document.getElementById('app-frame');
-            const loader = document.getElementById('clean-loader');
-    
-            iframe.onload = function() {
-                loader.style.opacity = '0';
-                iframe.style.opacity = '1';
-                setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
-            };
-    
-            const urlParams = new URLSearchParams(window.location.search);
+       <script>
+    (function initApp() {
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
+        const iframe = document.getElementById('app-frame');
+        const loader = document.getElementById('clean-loader');
+
+        iframe.onload = function() {
+            loader.style.opacity = '0';
+            iframe.style.opacity = '1';
+            setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // --- Handle New Login Data (Saving to localStorage) ---
+        const studentIdParam = urlParams.get('studentid');
+        if (studentIdParam && studentIdParam.trim() !== "") {
+            const keysToSave = ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'];
             
-            // --- Clear Group Data ---
-            if (urlParams.get('clear') === 'groups') {
-                localStorage.removeItem('groupId');
-                localStorage.removeItem('groupNumber');
-                localStorage.removeItem('groupname');
-                
-                let reqPage = urlParams.get('page') || 'Collaboration';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + reqPage;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
-    
-            if (urlParams.get('logout') === 'true') {
-                localStorage.clear(); 
-                window.history.replaceState({}, '', window.location.pathname + '?page=Login');
-            }
-    
-            let requestedPage = urlParams.get('page') || 'Login';
-    
-            // --- Handle New Login Data ---
-            const studentIdParam = urlParams.get('studentid');
-            if (studentIdParam && studentIdParam.trim() !== "") {
-                // Added 'address' and 'phoneNumber' to the keys list
-                ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'].forEach(key => {
-                    const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
+            keysToSave.forEach(key => {
+                const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
+                if (val && val !== 'undefined' && val !== 'null') {
+                    // Normalize key names for localStorage
+                    let storageKey = key;
+                    if (key === 'groupid') storageKey = 'groupId';
+                    if (key === 'groupnumber') storageKey = 'groupNumber';
+                    if (key === 'groupname') storageKey = 'groupname';
                     
-                    if (val) {
-                        const isPlaceholder = 
-                            (key.toLowerCase() === 'groupid' && val === '0') ||
-                            (key.toLowerCase() === 'groupnumber' && val === 'No Group') ||
-                            (key.toLowerCase() === 'groupname' && val === 'No Group Name');
-                        
-                        if (!isPlaceholder) {
-                            localStorage.setItem(key === 'groupid' ? 'groupId' : key === 'groupnumber' ? 'groupNumber' : key, val);
-                        }
-                    }
-                });
-                
-                requestedPage = 'Dashboard';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
-    
-            // --- Handle Group Switching ---
-            const groupIdParam = urlParams.get('groupid');
-            const groupNumParam = urlParams.get('groupnumber');
-            const groupNameParam = urlParams.get('groupname');
-            
-            if (groupIdParam && groupNumParam && !studentIdParam && groupIdParam !== '0' && groupNumParam !== 'No Group') {
-                localStorage.setItem('groupId', groupIdParam);
-                localStorage.setItem('groupNumber', groupNumParam);
-                
-                if (groupNameParam && groupNameParam !== 'No Group Name') {
-                    localStorage.setItem('groupname', groupNameParam);
+                    localStorage.setItem(storageKey, val);
                 }
-                
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=' + requestedPage;
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
-    
-            // Auth Check
-            const savedStudentId = localStorage.getItem('studentId');
-            const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
-    
-            if (!isLoggedIn && requestedPage !== 'Register') {
-                requestedPage = 'Login';
-            } else if (isLoggedIn && (requestedPage === 'Login' || requestedPage === 'Register')) {
-                requestedPage = 'Dashboard';
-                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
-                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-            }
-    
-            // Build URL
-            let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+            });
             
-            if (isLoggedIn) {
-                const params = {
-                    studentid: savedStudentId,
-                    email: localStorage.getItem('email'),
-                    firstName: localStorage.getItem('firstName'),
-                    middleName: localStorage.getItem('middleName'),
-                    surname: localStorage.getItem('surname'),
-                    yearSection: localStorage.getItem('yearSection'),
-                    groupid: localStorage.getItem('groupId'),
-                    groupnumber: localStorage.getItem('groupNumber'),
-                    groupname: localStorage.getItem('groupname'),
-                    // Added address and phoneNumber to the sync params
-                    address: localStorage.getItem('address'),
-                    phoneNumber: localStorage.getItem('phoneNumber')
-                };
-    
-                for (const [key, value] of Object.entries(params)) {
-                    if (value) finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
-                }
+            // Redirect to clean URL
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // Auth Check
+        const savedStudentId = localStorage.getItem('studentId');
+        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+        let requestedPage = urlParams.get('page') || (isLoggedIn ? 'Dashboard' : 'Login');
+
+        // Build URL
+        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+        
+        if (isLoggedIn) {
+            const params = {
+                studentid: savedStudentId,
+                email: localStorage.getItem('email'),
+                firstName: localStorage.getItem('firstName'),
+                middleName: localStorage.getItem('middleName'),
+                surname: localStorage.getItem('surname'),
+                yearSection: localStorage.getItem('yearSection'),
+                groupid: localStorage.getItem('groupId'),
+                groupnumber: localStorage.getItem('groupNumber'),
+                groupname: localStorage.getItem('groupname'),
+                address: localStorage.getItem('address') || '',
+                phoneNumber: localStorage.getItem('phoneNumber') || ''
+            };
+
+            for (const [key, value] of Object.entries(params)) {
+                finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
             }
-            
-            iframe.src = finalIframeUrl;
-        })();
-    </script>
+        }
+        
+        iframe.src = finalIframeUrl;
+    })();
+</script>
 </body>
 </html>
