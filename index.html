@@ -211,33 +211,45 @@
             window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
         }
 
-        // Auth Check
-        const savedStudentId = localStorage.getItem('studentId');
-        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
-        let requestedPage = urlParams.get('page') || (isLoggedIn ? 'Dashboard' : 'Login');
+// Auth Check
+        const savedStudentId = localStorage.getItem('studentId');
+        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+        let requestedPage = urlParams.get('page') || (isLoggedIn ? 'Dashboard' : 'Login');
 
-        // Build URL
-        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
-        
-        if (isLoggedIn) {
-            const params = {
-                studentid: savedStudentId,
-                email: localStorage.getItem('email'),
-                firstName: localStorage.getItem('firstName'),
-                middleName: localStorage.getItem('middleName'),
-                surname: localStorage.getItem('surname'),
-                yearSection: localStorage.getItem('yearSection'),
-                groupid: localStorage.getItem('groupId'),
-                groupnumber: localStorage.getItem('groupNumber'),
-                groupname: localStorage.getItem('groupname'),
-                address: localStorage.getItem('address') || '',
-                phoneNumber: localStorage.getItem('phoneNumber') || ''
-            };
+        // Build URL
+        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+        
+        if (isLoggedIn) {
+            const params = {
+                studentid: savedStudentId,
+                email: localStorage.getItem('email'),
+                firstName: localStorage.getItem('firstName'),
+                middleName: localStorage.getItem('middleName'),
+                surname: localStorage.getItem('surname'),
+                yearSection: localStorage.getItem('yearSection'),
+                // URL params take priority over localStorage for group context
+                groupid: urlParams.get('groupid') || urlParams.get('groupId') || localStorage.getItem('groupId'),
+                groupnumber: urlParams.get('groupnumber') || urlParams.get('groupNumber') || localStorage.getItem('groupNumber'),
+                groupname: urlParams.get('groupname') || localStorage.getItem('groupname'),
+                address: localStorage.getItem('address') || '',
+                phoneNumber: localStorage.getItem('phoneNumber') || ''
+            };
 
-            for (const [key, value] of Object.entries(params)) {
-                finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
-            }
-        }
+            for (const [key, value] of Object.entries(params)) {
+                if (value !== null && value !== undefined) {
+                    finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
+                }
+            }
+
+            // Forward any extra URL params not already handled (e.g. custom context params)
+            const handledKeys = new Set(['page','studentid','email','firstName','middleName','surname',
+                'yearSection','groupid','groupnumber','groupname','address','phoneNumber']);
+            urlParams.forEach((value, key) => {
+                if (!handledKeys.has(key.toLowerCase()) && value && value !== 'undefined' && value !== 'null') {
+                    finalIframeUrl += `&${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+                }
+            });
+        }
         
         iframe.src = finalIframeUrl;
     })();
