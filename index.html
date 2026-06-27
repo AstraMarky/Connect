@@ -105,69 +105,142 @@
         </div>
     </div>
 
-    <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
-<script>
-    (function initApp() {
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
-        const iframe = document.getElementById('app-frame');
-        const loader = document.getElementById('clean-loader');
+    <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
+       <script>
+    (function initApp() {
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
+        const iframe = document.getElementById('app-frame');
+        const loader = document.getElementById('clean-loader');
 
-        iframe.onload = function() {
-            if (loader) {
-                loader.style.opacity = '0';
-                iframe.style.opacity = '1';
-                setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
-            }
-        };
+        iframe.onload = function() {
+            loader.style.opacity = '0';
+            iframe.style.opacity = '1';
+            setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+        };
 
-        const urlParams = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams(window.location.search);
 
-        // --- 1. Save to LocalStorage ---
-        const studentIdParam = urlParams.get('studentid');
-        if (studentIdParam && studentIdParam.trim() !== "") {
-            const keys = ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'];
-            keys.forEach(key => {
-                const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
-                if (val && val !== 'undefined' && val !== 'null') {
-                    let storageKey = (key === 'groupid') ? 'groupId' : (key === 'groupnumber') ? 'groupNumber' : key;
-                    localStorage.setItem(storageKey, val);
-                }
-            });
-            window.history.replaceState({}, '', window.location.pathname + '?page=Dashboard');
-        }
+        // --- Handle New Login Data (Saving to localStorage) ---
+        const studentIdParam = urlParams.get('studentid');
+        if (studentIdParam && studentIdParam.trim() !== "") {
+            const keysToSave = ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'];
+            
+            keysToSave.forEach(key => {
+                const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
+                if (val && val !== 'undefined' && val !== 'null') {
+                    // Normalize key names for localStorage
+                    let storageKey = key;
+                    if (key === 'groupid') storageKey = 'groupId';
+                    if (key === 'groupnumber') storageKey = 'groupNumber';
+                    if (key === 'groupname') storageKey = 'groupname';
+                    
+                    localStorage.setItem(storageKey, val);
+                }
+            });
+            
+            // Redirect to clean URL
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
 
-        // --- 2. Auth & URL Building ---
-        const savedStudentId = localStorage.getItem('studentId');
-        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
-        let requestedPage = urlParams.get('page') || (isLoggedIn ? 'Dashboard' : 'Login');
-        
-        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
-        
-        if (isLoggedIn) {
-            const params = {
-                studentid: savedStudentId,
-                email: localStorage.getItem('email'),
-                firstName: localStorage.getItem('firstName'),
-                middleName: localStorage.getItem('middleName'),
-                surname: localStorage.getItem('surname'),
-                yearSection: localStorage.getItem('yearSection'),
-                groupid: localStorage.getItem('groupId'),
-                groupnumber: localStorage.getItem('groupNumber'),
-                groupname: localStorage.getItem('groupname'),
-                address: localStorage.getItem('address'),
-                phoneNumber: localStorage.getItem('phoneNumber')
-            };
+        // Auth Check
+        const savedStudentId = localStorage.getItem('studentId');
+        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+        let requestedPage = urlParams.get('page') || (isLoggedIn ? 'Dashboard' : 'Login');
 
-            // ONLY add to URL if the value exists and is not null/empty
-            for (const [key, value] of Object.entries(params)) {
-                if (value && value !== 'null' && value !== 'undefined') {
-                    finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
-                }
-            }
-        }
-        
-        iframe.src = finalIframeUrl;
-    })();
+        // Build URL
+        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+        
+        if (isLoggedIn) {
+            const params = {
+                studentid: savedStudentId,
+                email: localStorage.getItem('email'),
+                firstName: localStorage.getItem('firstName'),
+                middleName: localStorage.getItem('middleName'),
+                surname: localStorage.getItem('surname'),
+                yearSection: localStorage.getItem('yearSection'),
+                groupid: localStorage.getItem('groupId'),
+                groupnumber: localStorage.getItem('groupNumber'),
+                groupname: localStorage.getItem('groupname'),
+                address: localStorage.getItem('address') || '',
+                phoneNumber: localStorage.getItem('phoneNumber') || ''
+            };
+
+            for (const [key, value] of Object.entries(params)) {
+                finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
+            }
+        }
+        
+        iframe.src = finalIframeUrl;
+    })();
+</script>    <iframe id="app-frame" title="ArcherStudio Connect Portal"></iframe>
+       <script>
+    (function initApp() {
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxNbekgmyrn9RydcCoNf09ZkbtZhNycH3s_J-3K3ultr6dMLmwH4vEAzuwk0ZXd-aU/exec";
+        const iframe = document.getElementById('app-frame');
+        const loader = document.getElementById('clean-loader');
+
+        iframe.onload = function() {
+            loader.style.opacity = '0';
+            iframe.style.opacity = '1';
+            setTimeout(() => { loader.style.visibility = 'hidden'; }, 400);
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // --- Handle New Login Data (Saving to localStorage) ---
+        const studentIdParam = urlParams.get('studentid');
+        if (studentIdParam && studentIdParam.trim() !== "") {
+            const keysToSave = ['studentId', 'email', 'surname', 'firstName', 'middleName', 'yearSection', 'groupid', 'groupnumber', 'groupname', 'address', 'phoneNumber'];
+            
+            keysToSave.forEach(key => {
+                const val = urlParams.get(key) || urlParams.get(key.toLowerCase());
+                if (val && val !== 'undefined' && val !== 'null') {
+                    // Normalize key names for localStorage
+                    let storageKey = key;
+                    if (key === 'groupid') storageKey = 'groupId';
+                    if (key === 'groupnumber') storageKey = 'groupNumber';
+                    if (key === 'groupname') storageKey = 'groupname';
+                    
+                    localStorage.setItem(storageKey, val);
+                }
+            });
+            
+            // Redirect to clean URL
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?page=Dashboard';
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+
+        // Auth Check
+        const savedStudentId = localStorage.getItem('studentId');
+        const isLoggedIn = savedStudentId !== null && savedStudentId.trim() !== '';
+        let requestedPage = urlParams.get('page') || (isLoggedIn ? 'Dashboard' : 'Login');
+
+        // Build URL
+        let finalIframeUrl = GAS_URL + "?page=" + requestedPage;
+        
+        if (isLoggedIn) {
+            const params = {
+                studentid: savedStudentId,
+                email: localStorage.getItem('email'),
+                firstName: localStorage.getItem('firstName'),
+                middleName: localStorage.getItem('middleName'),
+                surname: localStorage.getItem('surname'),
+                yearSection: localStorage.getItem('yearSection'),
+                groupid: localStorage.getItem('groupId'),
+                groupnumber: localStorage.getItem('groupNumber'),
+                groupname: localStorage.getItem('groupname'),
+                address: localStorage.getItem('address') || '',
+                phoneNumber: localStorage.getItem('phoneNumber') || ''
+            };
+
+            for (const [key, value] of Object.entries(params)) {
+                finalIframeUrl += `&${key}=${encodeURIComponent(value)}`;
+            }
+        }
+        
+        iframe.src = finalIframeUrl;
+    })();
 </script>
 </body>
 </html>
