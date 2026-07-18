@@ -35,6 +35,17 @@
     allow="fullscreen; clipboard-write;"
     allowfullscreen="true">
   </iframe>
+<script>
+  // 1. Get the current URL parameters from the GitHub page
+  const params = window.location.search; 
 
+  // 2. Select the iframe
+  const frame = document.querySelector('iframe');
+
+  // 3. Append the parameters to the src if they exist
+  if (params) {
+    frame.src += params;
+  }
+</script>
 </body>
 </html>
